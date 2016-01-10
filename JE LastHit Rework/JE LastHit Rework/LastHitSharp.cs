@@ -276,7 +276,7 @@
                         return minion2;
                     }
                 }
-
+                return null;
                 if (minion != null && (minion.Health) >= GetPhysDamageOnUnit(minion, test) && (minion.Health) <= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage*2))
                 {
                     if ((minion.Health) >= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage*1.5))
@@ -285,7 +285,7 @@
                     }
                     else
                     {
-                        return GetLowestHPCreep(me, minion);
+                        //return GetLowestHPCreep(me, minion);
                     }
                     //if (me.CanAttack())
                     //{
