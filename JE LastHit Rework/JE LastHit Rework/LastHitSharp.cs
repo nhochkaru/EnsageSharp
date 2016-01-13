@@ -22,7 +22,7 @@
         private static Hero me;
 
         private static float lastRange;
-
+        private static ParticleEffect rangeDisplay;
         private static bool isloaded;
 
         #endregion
@@ -30,22 +30,36 @@
         public static void Init()
         {
 
-            Menu.AddItem(new MenuItem("combatkey", "Combat").SetValue(new KeyBind(32, KeyBindType.Press)));
-            Menu.AddItem(new MenuItem("harass", "Last Hit Only").SetValue(new KeyBind('C', KeyBindType.Press)));
-            Menu.AddItem(new MenuItem("farmKey", "Farm Key").SetValue(new KeyBind('V', KeyBindType.Press)));
-            Menu.AddItem(new MenuItem("kitekey", "Kite key").SetValue(new KeyBind('H', KeyBindType.Press)));
+            Menu.AddItem(new MenuItem("combatkey", "Chase mode").SetValue(new KeyBind(32, KeyBindType.Press)));
+            Menu.AddItem(new MenuItem("harass", "Lasthit mode").SetValue(new KeyBind('C', KeyBindType.Press)));
+            Menu.AddItem(new MenuItem("farmKey", "Farm mode").SetValue(new KeyBind('V', KeyBindType.Press)));
+            Menu.AddItem(new MenuItem("kitekey", "Kite mode").SetValue(new KeyBind('H', KeyBindType.Press)));
             Menu.AddItem(
                 new MenuItem("bonuswindup", "Bonus WindUp time on kitting").SetValue(new Slider(500, 100, 2000))
                     .SetTooltip("Time between attacks in kitting mode"));
             Menu.AddItem(
-                new MenuItem("outrange", "Bonus range").SetValue(new Slider(70, 0, 200))
+                new MenuItem("showatkrange", "Show attack range ?").SetValue(true)
                     .SetTooltip("testing"));
             Menu.AddItem(
-                new MenuItem("harassheroes", "Is harass Hero ?").SetValue(new Slider(1, 0, 1))
+                new MenuItem("harassheroes", "Harass in lasthit mode ?").SetValue(true)
+                    .SetTooltip("testing"));
+            Menu.AddItem(
+                new MenuItem("denied", "Deny creep ?").SetValue(true)
+                    .SetTooltip("testing"));
+            Menu.AddItem(
+                new MenuItem("outrange", "Bonus range").SetValue(new Slider(70, 0, 200))
                     .SetTooltip("testing"));
             Menu.AddToMainMenu();
+
+
             Game.OnUpdate += Game_OnUpdate;
             Orbwalking.Load();
+
+            if (rangeDisplay == null)
+            {
+                return;
+            }
+            rangeDisplay = null;
         }
 
 
@@ -62,9 +76,10 @@
                     return;
                 }
                 isloaded = true;
+                rangeDisplay = null;
                 target = null;
                 Game.PrintMessage(
-                    "<font face='Tahoma'><font color='#000000'>[--</font> <font color='#000000'>JE LastHit</font> by <font color='#000000'>JE</font> loaded! <font color='#000000'>--]</font></font>",
+                    "<font face='Tahoma'>JE LastHit by JE loaded! </font>",
                     MessageType.LogMessage);
             }
 
@@ -72,8 +87,12 @@
             {
                 isloaded = false;
                 me = ObjectMgr.LocalHero;
-
+                if (rangeDisplay == null)
+                {
+                    return;
+                }
                 target = null;
+                rangeDisplay = null;
 
                 return;
             }
@@ -83,11 +102,46 @@
                 return;
             }
 
-
             if (me.IsAlive)
             {
                 lastRange = me.GetAttackRange() + me.HullRadius + Menu.Item("outrange").GetValue<Slider>().Value;
             }
+
+            if (Menu.Item("showatkrange").GetValue<bool>())
+            {
+                if (rangeDisplay == null)
+                {
+                    if (me.IsAlive)
+                    {
+                        rangeDisplay = me.AddParticleEffect(@"particles\ui_mouseactions\drag_selected_ring.vpcf");
+                        rangeDisplay.SetControlPoint(1, new Vector3(255, 80, 50));
+                        rangeDisplay.SetControlPoint(3, new Vector3(20, 0, 0));
+                        rangeDisplay.SetControlPoint(2, new Vector3(lastRange, 255, 0));
+                    }
+                }
+                else
+                {
+                    if (!me.IsAlive)
+                    {
+                        rangeDisplay.Dispose();
+                        rangeDisplay = null;
+                    }
+                    else if (lastRange != (me.GetAttackRange() + me.HullRadius + Menu.Item("outrange").GetValue<Slider>().Value))
+                    {
+                        rangeDisplay.Dispose();
+                        rangeDisplay = me.AddParticleEffect(@"particles\ui_mouseactions\drag_selected_ring.vpcf");
+                        rangeDisplay.SetControlPoint(1, new Vector3(255, 80, 50));
+                        rangeDisplay.SetControlPoint(3, new Vector3(15, 0, 0));
+                        rangeDisplay.SetControlPoint(2, new Vector3(lastRange, 255, 0));
+                    }
+                }
+            }
+            else
+            {
+                rangeDisplay.Dispose();
+                rangeDisplay = null;
+            }
+            
 
 
             if (target != null && (!target.IsValid || !target.IsVisible || !target.IsAlive || target.Health <= 0))
@@ -113,8 +167,8 @@
                     && (creepTarget == null || !creepTarget.IsValid || !creepTarget.IsVisible || !creepTarget.IsAlive
                         || creepTarget.Health <= 0 || !Orbwalking.AttackOnCooldown(creepTarget)))
                 {
-                    
-                    creepTarget = GetLowestHPCreep(me,null);
+
+                    creepTarget = GetLowestHPCreep(me, null);
                     //creepTarget = GetAllLowestHPCreep(me);
                     creepTarget = KillableCreep(true, creepTarget);
                 }
@@ -123,11 +177,11 @@
                     && (creepTarget == null || !creepTarget.IsValid || !creepTarget.IsVisible /*|| !creepTarget.IsAlive*/
                         || creepTarget.Health <= 0 || !Orbwalking.AttackOnCooldown(creepTarget)))
                 {
-                    creepTarget = GetLowestHPCreep(me,null);
+                    creepTarget = GetLowestHPCreep(me, null);
                     //creepTarget = GetAllLowestHPCreep(me);
                     creepTarget = KillableCreep(false, creepTarget);
 
-                 
+
                 }
             }
 
@@ -148,10 +202,13 @@
                             target = closestToMouse;
                         }
                     }
-                    else if (Menu.Item("harassheroes").GetValue<Slider>().Value == 1)
+                    else if (Menu.Item("harassheroes").GetValue<bool>())
                     {
                         target = me.BestAATarget();
+                       
                     }
+                    else
+                    { target = null; }
                     Orbwalking.Orbwalk(target, 500);
                 }
                 else
@@ -200,7 +257,7 @@
                              || x.ClassID == ClassID.CDOTA_BaseNPC_Barracks
                              || x.ClassID == ClassID.CDOTA_BaseNPC_Building
                              || x.ClassID == ClassID.CDOTA_BaseNPC_Creature) && x.IsAlive && x.IsVisible
-                            /*&& x.Team != source.Team*/ && x.Distance2D(source) < attackRange + 100)
+                                /*&& x.Team != source.Team*/ && x.Distance2D(source) < attackRange + 100)
                         .OrderBy(creep => creep.Health)
                         .DefaultIfEmpty(null)
                         .FirstOrDefault();
@@ -212,7 +269,7 @@
             }
             return null;
         }
-        public static Unit GetLowestHPCreep(Hero source,Unit markedcreep)
+        public static Unit GetLowestHPCreep(Hero source, Unit markedcreep)
         {
             try
             {
@@ -250,7 +307,7 @@
             double test = 0;
             if (minion != null)
             {
-                
+
 
                 var missilespeed = GetProjectileSpeed(me);
                 var time = me.IsRanged == false ? 0 : UnitDatabase.GetAttackBackswing(me) + (me.Distance2D(minion) / missilespeed);
@@ -266,18 +323,21 @@
                         return minion;
                     }
                 }
-                Unit minion2 = GetAllLowestHPCreep(me);
-                test = time * minion2.AttacksPerSecond * minion2.MinimumDamage;
-                if (minion2 != null && (minion2.Health) < GetPhysDamageOnUnit(minion2, test))
+                if (Menu.Item("denied").GetValue<bool>())
                 {
-
-                    if (me.CanAttack())
+                    Unit minion2 = GetAllLowestHPCreep(me);
+                    test = time * minion2.AttacksPerSecond * minion2.MinimumDamage;
+                    if (minion2 != null && (minion2.Health) < GetPhysDamageOnUnit(minion2, test))
                     {
-                        return minion2;
+
+                        if (me.CanAttack())
+                        {
+                            return minion2;
+                        }
                     }
                 }
                 //return null;
-                if (minion != null && (minion.Health) >= GetPhysDamageOnUnit(minion, test) && (minion.Health) <= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage*2))
+                if (minion != null && (minion.Health) >= GetPhysDamageOnUnit(minion, test) && (minion.Health) <= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage * 2))
                 {
                     //if ((minion.Health) >= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage*1.5))
                     {
