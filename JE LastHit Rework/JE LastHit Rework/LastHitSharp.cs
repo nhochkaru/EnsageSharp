@@ -92,7 +92,6 @@ namespace JE_LastHit_Rework
              foreach (var enemy in enemies.Where(x => x != null ))
             {
 
-<<<<<<< HEAD
 
                 var health = enemy.Health;
                 var maxHealth = enemy.MaximumHealth;
@@ -104,19 +103,8 @@ namespace JE_LastHit_Rework
                 var dmgperc = Math.Min(damge, health) / maxHealth;
                 Vector2 hbarpos;
 
-=======
 
-                var health = enemy.Health;
-                var maxHealth = enemy.MaximumHealth;
-               
-                var damge = (float)GetPhysDamageOnUnit(enemy, 0);
-                var hpleft = health;
-                var hpperc = hpleft / maxHealth;
 
-                var dmgperc = Math.Min(damge, health) / maxHealth;
-                Vector2 hbarpos;
-
->>>>>>> origin/master
                 hbarpos = HUDInfo.GetHPbarPosition(enemy);
                 
                 Vector2 screenPos;
@@ -132,11 +120,11 @@ namespace JE_LastHit_Rework
                 var hpbary = hbarpos.Y;
                 float a = (float)Math.Round((damge * HUDInfo.GetHPBarSizeX(enemy)) / (enemy.MaximumHealth));
                 var position = hbarpos + new Vector2(hpvarx * hpperc +10, -10);
-<<<<<<< HEAD
+
                 //Console.WriteLine("here " + damge.ToString());
-=======
+
                 Console.WriteLine("here " + damge.ToString());
->>>>>>> origin/master
+
                 try
                 {
                     float left = (float)Math.Round(damge / 7);
