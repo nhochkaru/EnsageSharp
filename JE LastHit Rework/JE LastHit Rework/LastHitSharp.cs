@@ -20,11 +20,14 @@
         private static Unit creepTarget;
         private static Hero target;
         private static Hero me;
-
+        private static int tickRate = 100;
         private static float lastRange;
         private static ParticleEffect rangeDisplay;
         private static bool isloaded;
-
+        private static Bool _screenSizeLoaded = false;
+        private static float _screenX;
+        private static readonly Dictionary<Unit, string> CreepsDictionary = new Dictionary<Unit, string>();
+        private static readonly Dictionary<Unit, Team> CreepsTeamDictionary = new Dictionary<Unit, Team>();
         #endregion
 
         public static void Init()
@@ -37,6 +40,9 @@
             Menu.AddItem(
                 new MenuItem("bonuswindup", "Bonus WindUp time on kitting").SetValue(new Slider(500, 100, 2000))
                     .SetTooltip("Time between attacks in kitting mode"));
+            Menu.AddItem(
+                new MenuItem("hpleftcreep", "Mark hp ?").SetValue(true)
+                    .SetTooltip("testing"));
             Menu.AddItem(
                 new MenuItem("showatkrange", "Show attack range ?").SetValue(true)
                     .SetTooltip("testing"));
@@ -53,7 +59,10 @@
 
 
             Game.OnUpdate += Game_OnUpdate;
+            Drawing.OnDraw += Drawing_OnDraw;
             Orbwalking.Load();
+            
+            
 
             if (rangeDisplay == null)
             {
@@ -64,7 +73,67 @@
 
 
         #region OnGameUpdate
+         private static void drawhpbar()
+         {
+             var attackRange = me.GetAttackRange();
+             var enemies =
+                 ObjectMgr.GetEntities<Unit>()
+                     .Where(
+                         x =>
+                         (x.ClassID == ClassID.CDOTA_BaseNPC_Tower || x.ClassID == ClassID.CDOTA_BaseNPC_Creep_Lane
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Creep
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Creep_Neutral
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Creep_Siege
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Additive
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Barracks
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Building
+                          || x.ClassID == ClassID.CDOTA_BaseNPC_Creature) && x.IsAlive && x.IsVisible
+                             && x.Team != me.Team && x.Distance2D(me) < attackRange + 500);
+             foreach (var enemy in enemies.Where(x => x != null ))
+            {
 
+
+                var health = enemy.Health;
+                var maxHealth = enemy.MaximumHealth;
+               
+                var damge = (float)GetPhysDamageOnUnit(enemy, 0);
+                var hpleft = health;
+                var hpperc = hpleft / maxHealth;
+
+                var dmgperc = Math.Min(damge, health) / maxHealth;
+                Vector2 hbarpos;
+
+                hbarpos = HUDInfo.GetHPbarPosition(enemy);
+                
+                Vector2 screenPos;
+                var enemyPos = enemy.Position + new Vector3(0, 0, enemy.HealthBarOffset);
+                if (!Drawing.WorldToScreen(enemyPos, out screenPos)) continue;
+
+                var start = screenPos;
+
+
+                hbarpos.X = start.X - (HUDInfo.GetHPBarSizeX(enemy) / 2);
+                hbarpos.Y = start.Y;
+                var hpvarx = hbarpos.X;
+                var hpbary = hbarpos.Y;
+                float a = (float)Math.Round((damge * HUDInfo.GetHPBarSizeX(enemy)) / (enemy.MaximumHealth));
+                var position = hbarpos + new Vector2(hpvarx * hpperc +10, -10);
+                //Console.WriteLine("here " + damge.ToString());
+                try
+                {
+                    float left = (float)Math.Round(damge / 7);
+                    Drawing.DrawRect(
+                        position,
+                        new Vector2(a, (float)(HUDInfo.GetHpBarSizeY(enemy))),
+                        (enemy.Health > 0) ? new Color(150, 225, 150, 80) : new Color(70, 225, 150, 225));
+                    Drawing.DrawRect(position, new Vector2(a, (float)(HUDInfo.GetHpBarSizeY(enemy))), Color.Black, true);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+         }
         private static void Game_OnUpdate(EventArgs args)
         {
             if (!isloaded)
@@ -105,6 +174,7 @@
             if (me.IsAlive)
             {
                 lastRange = me.GetAttackRange() + me.HullRadius + Menu.Item("outrange").GetValue<Slider>().Value;
+               
             }
 
             if (Menu.Item("showatkrange").GetValue<bool>())
@@ -149,6 +219,7 @@
                 target = null;
             }
             var canCancel = Orbwalking.CanCancelAnimation();
+            bool wait = false;
             if (canCancel)
             {
                 if (target != null && !target.IsVisible && !Orbwalking.AttackOnCooldown(target))
@@ -170,7 +241,7 @@
 
                     creepTarget = GetLowestHPCreep(me, null);
                     //creepTarget = GetAllLowestHPCreep(me);
-                    creepTarget = KillableCreep(true, creepTarget);
+                    creepTarget = KillableCreep(true, creepTarget,ref wait);
                 }
 
                 if (Game.IsKeyDown(Menu.Item("harass").GetValue<KeyBind>().Key)
@@ -179,9 +250,22 @@
                 {
                     creepTarget = GetLowestHPCreep(me, null);
                     //creepTarget = GetAllLowestHPCreep(me);
-                    creepTarget = KillableCreep(false, creepTarget);
-
-
+                    creepTarget = KillableCreep(false, creepTarget,ref wait);
+                    if (wait && /*Utils.SleepCheck("Orb") && Utils.SleepCheck("Orb2") &&*/ creepTarget!=null)
+                    {
+                        
+                        Orbwalking.Orbwalk(creepTarget);
+                        me.Hold();
+                        //me.Attack(Game.MousePosition);
+                        //Utils.Sleep(0.2, "Orb");
+                        //Utils.Sleep(0.2, "Orb2");
+                        
+                    }
+                    else if (!wait && creepTarget != null)
+                    {
+                        Orbwalking.Orbwalk(creepTarget);
+                    }
+                    
                 }
             }
 
@@ -219,10 +303,12 @@
             }
             if (Game.IsKeyDown(Menu.Item("farmKey").GetValue<KeyBind>().Key))
             {
+
                 Orbwalking.Orbwalk(creepTarget);
             }
             if (Game.IsKeyDown(Menu.Item("combatkey").GetValue<KeyBind>().Key))
             {
+
                 Orbwalking.Orbwalk(target, attackmodifiers: true);
             }
             if (Game.IsKeyDown(Menu.Item("kitekey").GetValue<KeyBind>().Key))
@@ -298,7 +384,7 @@
             }
             return null;
         }
-        private static Unit KillableCreep(bool islaneclear, Unit minion)
+        private static Unit KillableCreep(bool islaneclear, Unit minion,ref bool wait)
         {
             //var minion = ObjectMgr.GetEntities<Creep>()
             //       .Where(creep => creep.IsAlive && me.Distance2D(creep) <= me.GetAttackRange())
@@ -311,7 +397,11 @@
 
                 var missilespeed = GetProjectileSpeed(me);
                 var time = me.IsRanged == false ? 0 : UnitDatabase.GetAttackBackswing(me) + (me.Distance2D(minion) / missilespeed);
-                test = time * minion.AttacksPerSecond * minion.MinimumDamage;
+                if (time >= minion.AttackSpeedValue)
+                {
+                    test = time * minion.AttacksPerSecond * minion.MinimumDamage;
+                }
+                
 
 
                 // Console.WriteLine("test " + test + " time " + time + " distance " + me.Distance2D(minion) / missilespeed);
@@ -341,6 +431,8 @@
                 {
                     //if ((minion.Health) >= (GetPhysDamageOnUnit(minion, test) + me.MinimumDamage*1.5))
                     {
+                       // wait = true;
+                       // return minion;
                         return null;
                     }
                     //else
@@ -355,7 +447,11 @@
             }
             return islaneclear == true ? minion : null;
         }
-
+        private static void StopAndAttack()
+        {
+            me.Hold();
+            me.Attack(Game.MousePosition);
+        }
         private static double GetPhysDamageOnUnit(Unit unit, double bonusdamage)
         {
             Item quelling_blade = me.FindItem("item_quelling_blade");
@@ -389,6 +485,19 @@
             return (float)ProjectileSpeed;
         }
         #endregion
+
+
+
+        private static void Drawing_OnDraw(EventArgs args)
+        {
+            if (!Game.IsInGame)
+                return;
+            if (Menu.Item("hpleftcreep").GetValue<bool>())
+            {
+                drawhpbar();
+            }
+            
+        }
     }
 
 }
