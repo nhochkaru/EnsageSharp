@@ -1,0 +1,11 @@
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\JE LastHit Rework.exe.config
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\JE LastHit Rework.exe
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\JE LastHit Rework.pdb
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\Ensage.Common.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\Ensage.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\SharpDX.Direct3D9.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\SharpDX.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\EnsageSharp.Sandbox.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\bin\Release\Newtonsoft.Json.dll
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\obj\Debug\JE LastHit Rework.exe
+C:\Users\hieukoj\Documents\GitHub\EnsageSharp\JE LastHit Rework\JE LastHit Rework\obj\Debug\JE LastHit Rework.pdb
